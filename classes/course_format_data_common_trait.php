@@ -332,6 +332,10 @@ class course_format_data_common_trait {
                 if ($course->marker == $section) {
                     $sectiondetails->highlighted = 1;
                 }
+                // etwinning: Pass the Start and End Date of the Section
+                $sectiondetails->startdate = date("d M", $course->startdate + (604800 * ($section-1)));
+                $sectiondetails->enddate =  date("d M",$course->startdate+1 + (604800 * ($section-1)) + 518400);
+
                 $sections[] = $sectiondetails;
             } else if ($rformat == REMUI_LIST_FORMAT) {
                 if (!empty($currentsection->summary)) {
