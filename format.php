@@ -73,6 +73,11 @@ $settings = $courseformat->get_settings();
 $rformat = $settings['remuicourseformat'];
 $type = 'list';
 
+// etwinning hack. Use list layout on 2nd level sections
+if ($section >0) {
+    $course->remuicourseformat = 1;
+    $rformat = REMUI_LIST_FORMAT;
+}
 if ($section) {
     // List Format -> One Section Page : render_list_one_section -> list_one_section.
     if ($course->remuicourseformat && $course->coursedisplay) {
@@ -81,6 +86,8 @@ if ($section) {
         );
     }
 }
+
+
 // List Format -> All Section Summary Page : render_list_all_sections_summary -> list_all_sections_summary.
 if ($course->remuicourseformat && $course->coursedisplay && !$section) {
     if ($USER->editing) {
