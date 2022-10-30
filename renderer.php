@@ -425,7 +425,6 @@ class format_remuiformat_renderer extends format_section_renderer_base {
                 // Student can not see the section contents but can see its name.
                 //etwinning: Completely hide card when is hidden
                 $o .= "Not available";
-                
                 //$o .= $this->courserenderer->availability_info(get_string('notavailable'), 'ishidden');
             }
         } else if (!$section->uservisible) {
