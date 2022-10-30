@@ -68,7 +68,8 @@
 {{/addsection}}
 
 {{^addsection}}
-<li class="col-lg-4 col-md-6 col-sm-6 d-inline-flex section" id="section-{{{index}}}" aria-labelledby="section-{{{index}}} .content .sectionname">
+    {{^hidden}}
+    <li class="col-lg-4 col-md-6 col-sm-6 d-inline-flex section" id="section-{{{index}}}" aria-labelledby="section-{{{index}}} .content .sectionname">
     <div class="single-card {{{remuinewthemecolor}}} {{#sectionfirstimage}}sectionfirstimage{{/sectionfirstimage}}"
         style="background: linear-gradient({{remuidefaultsectionoverlay}}, {{remuidefaultsectionoverlay}}), {{sectionfirstimage}};
                 background-repeat: no-repeat;
@@ -127,4 +128,6 @@
         </div>
     </div>
 </li>
+{{/hidden}}
+
 {{/addsection}}
