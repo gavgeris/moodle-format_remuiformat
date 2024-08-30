@@ -30,7 +30,30 @@ define ('REMUI_LIST_FORMAT', 1);
 /**
  * Cards Format - A topics based format that uses card layout to display the activities/section/topics.
  */
-class format_remuiformat extends format_base {
+class format_remuiformat extends core_courseformat\base {
+
+    /**
+     * Settings
+     *
+     * @var array
+     */
+    public $settings = [];
+
+    /**
+     * Available layouts.
+     *
+     * @var array
+     */
+    private $availablelayouts = [];
+
+    /**
+     * Show course activity index on course page left sidebar.
+     *
+     * @return bool
+     */
+    public function uses_course_index() {
+        return true;
+    }
 
     /**
      * Creates a new instance of class
@@ -227,7 +250,7 @@ class format_remuiformat extends format_base {
                     'type' => PARAM_INT
                 ),
                 'hidegeneralsectionwhenempty' => array(
-                    'defult' => get_config('format_remuiformat', 'hidegeneralsectionwhenempty') || false,
+                    'default' => get_config('format_remuiformat', 'hidegeneralsectionwhenempty') || false,
                     'type' => PARAM_INT
                 ),
                 'coursedisplay' => array(
@@ -242,10 +265,6 @@ class format_remuiformat extends format_base {
                     'default' => get_config('format_remuiformat', 'defaultsectionsummarymaxlength'),
                     'type' => PARAM_INT
                 ),
-                'remuiteacherdisplay' => array(
-                    'default' => 1,
-                    'type' => PARAM_INT
-                ),
                 'remuidefaultsectionview' => array(
                     'default' => 1,
                     'type' => PARAM_INT
@@ -254,10 +273,18 @@ class format_remuiformat extends format_base {
                     'default' => 0,
                     'type' => PARAM_INT
                 ),
-                'remuidefaultsectiontheme' => array(
-                    'default' => 0,
-                    'type' => PARAM_INT
-                )
+                'edw_format_hd_bgpos' => array(
+                    'default' => "center",
+                    'type' => PARAM_RAW
+                ),
+                'edw_format_hd_bgsize' => array(
+                    'default' => "cover",
+                    'type' => PARAM_RAW
+                ),
+                'headeroverlayopacity' => array(
+                    'default' => "100",
+                    'type' => PARAM_RAW
+                ),
             );
         }
 
@@ -330,18 +357,6 @@ class format_remuiformat extends format_base {
                     'help' => 'sectiontitlesummarymaxlength',
                     'help_component' => 'format_remuiformat'
                 ),
-                'remuiteacherdisplay' => array(
-                    'label' => new lang_string('remuiteacherdisplay', 'format_remuiformat'),
-                    'element_type' => 'select',
-                    'element_attributes' => array(
-                        array(
-                            1 => new lang_string('yes'),
-                            0 => new lang_string('no')
-                        )
-                    ),
-                    'help' => 'remuiteacherdisplay',
-                    'help_component' => 'format_remuiformat'
-                ),
                 'remuidefaultsectionview' => array(
                     'label' => new lang_string('remuidefaultsectionview', 'format_remuiformat'),
                     'element_type' => 'select',
@@ -366,18 +381,40 @@ class format_remuiformat extends format_base {
                     'help' => 'remuienablecardbackgroundimg',
                     'help_component' => 'format_remuiformat'
                 ),
-                'remuidefaultsectiontheme' => array(
-                    'label' => new lang_string('remuidefaultsectiontheme', 'format_remuiformat'),
+                'edw_format_hd_bgpos' => array(
+                    'label' => new lang_string('edw_format_hd_bgpos', 'format_remuiformat'),
                     'element_type' => 'select',
                     'element_attributes' => array(
                         array(
-                            0 => new lang_string( 'light', 'format_remuiformat' ),
-                            1 => new lang_string( 'dark', 'format_remuiformat' ),
+                            "bottom" => new lang_string( 'bottom', 'format_remuiformat' ),
+                            "center" => new lang_string( 'center', 'format_remuiformat' ),
+                            "top" => new lang_string( 'top', 'format_remuiformat' ),
+                            "left" => new lang_string( 'left', 'format_remuiformat' ),
+                            "right" => new lang_string( 'right', 'format_remuiformat' ),
                         )
                     ),
-                    'help' => 'remuidefaultsectiontheme',
+                    'help' => 'edw_format_hd_bgpos',
                     'help_component' => 'format_remuiformat'
-                )
+                ),
+                'edw_format_hd_bgsize' => array(
+                    'label' => new lang_string('edw_format_hd_bgsize', 'format_remuiformat'),
+                    'element_type' => 'select',
+                    'element_attributes' => array(
+                        array(
+                            "contain" => new lang_string( 'contain', 'format_remuiformat' ),
+                            "auto" => new lang_string( 'auto', 'format_remuiformat' ),
+                            "cover" => new lang_string( 'cover', 'format_remuiformat' ),
+                        )
+                    ),
+                    'help' => 'edw_format_hd_bgsize',
+                    'help_component' => 'format_remuiformat'
+                ),
+                'headeroverlayopacity' => array(
+                    'label' => new lang_string('headeroverlayopacity', 'format_remuiformat'),
+                    'element_type' => 'text',
+                    'help' => 'headeroverlayopacity',
+                    'help_component' => 'format_remuiformat'
+                ),
             );
             $courseformatoptions = array_merge_recursive($courseformatoptions, $courseformatoptionsedit);
         }
@@ -600,8 +637,11 @@ class format_remuiformat extends format_base {
      * @return null|array|stdClass any data for the Javascript post-processor (must be json-encodeable)
      */
     public function section_action($section, $action, $sr) {
-        global $PAGE;
+        global $PAGE, $CFG;
 
+        if ($action == 'deleteSection') {
+            return null;
+        }
         if ($section->section && ($action === 'setmarker' || $action === 'removemarker')) {
             // Format 'topics' allows to set and remove markers in addition to common section actions.
             require_capability('moodle/course:setcurrentsection', context_course::instance($this->courseid));
@@ -612,7 +652,13 @@ class format_remuiformat extends format_base {
         // For show/hide actions call the parent method and return the new content for .section_availability element.
         $rv = parent::section_action($section, $action, $sr);
         $renderer = $PAGE->get_renderer('format_topics');
-        $rv['section_availability'] = $renderer->section_availability($this->get_section($section));
+        $format = course_get_format($this->courseid);
+        if($CFG->backup_release > '4.3'){
+            $rv['section_availability'] = new \core_courseformat\output\local\content\section\availability($format, $this->get_section($section));
+        }else{
+            $rv['section_availability'] = $renderer->section_availability($this->get_section($section));
+        }
+
         return $rv;
     }
 
@@ -765,4 +811,148 @@ function format_remuiformat_pluginfile($course, $cm, $context, $filearea, $args,
         return false;
     }
     send_stored_file($file, 0, 0, 0, $options);
+}
+
+function format_remuiformat_check_plugin_available($component) {
+
+    list($type, $name) = core_component::normalize_component($component);
+
+    $dir = \core_component::get_plugin_directory($type, $name);
+    if (!file_exists($dir ?? '')) {
+        return false;
+    }
+    return true;
+}
+
+    /**
+     * Get Enrolled Teachers Context
+     */
+function get_enrolled_teachers_context_formate($course, $frontlineteacher = false) {
+    global $OUTPUT, $CFG, $USER;
+
+    $courseid = $course->id;
+
+    $usergroups = groups_get_user_groups($courseid, $USER->id);
+
+    $groupids = 0;
+
+    if($course->groupmode == 1){
+        $groupids = $usergroups[0];
+    }
+    $coursecontext = \context_course::instance($courseid);
+    $teachers = get_enrolled_users($coursecontext, 'mod/folder:managefiles', $groupids, '*', 'firstname', $limitfrom = 0, $limitnum = 0, $onlyactive = true);
+    $roles =   new stdClass();
+
+    $allroles = get_all_roles();
+    foreach($allroles as $singlerole){
+        if($singlerole->shortname == 'editingteacher'){
+            $roles = $singlerole;
+            break;
+        }
+    }
+    if(!isset($roles)){
+        $roles->id = "";
+    }
+
+    $context = array();
+
+    if ($teachers) {
+        $namescount = 4;
+        $profilecount = 0;
+        foreach ($teachers as $key => $teacher) {
+            if ($frontlineteacher && $profilecount < $namescount) {
+                $instructor = array();
+                $instructor['id'] = $teacher->id;
+                $instructor['name'] = fullname($teacher, true);
+                $instructor['avatars'] = $OUTPUT->user_picture($teacher);
+                $instructor['teacherprofileurl'] = $CFG->wwwroot.'/user/profile.php?id='.$teacher->id;
+                if ($profilecount != 0) {
+                    $instructor['hasanother'] = true;
+                }
+                $context['instructors'][] = $instructor;
+            }
+            $profilecount++;
+        }
+        if ($profilecount > $namescount) {
+            $context['teachercount'] = $profilecount - $namescount;
+        }
+        $context['participantspageurl'] = $CFG->wwwroot.'/user/index.php?id='.$courseid.'&roleid='.$roles->id;
+        $context['hasteachers'] = true;
+    }
+    return $context;
+}
+
+    /**
+     * Get course image.
+     * @param  stdClass   $corecourselistelement Course list element
+     * @param  boolean $islist                Is list
+     * @return string                         Course image
+     */
+function formate_get_course_image($corecourselistelement, $islist = false) {
+    global $CFG, $OUTPUT;
+
+    if (!$islist) {
+        $corecourselistelement = new \core_course_list_element($corecourselistelement);
+    }
+
+    // Course image.
+    foreach ($corecourselistelement->get_course_overviewfiles() as $file) {
+        $isimage = $file->is_valid_image();
+        $courseimage = file_encode_url(
+            "$CFG->wwwroot/pluginfile.php",
+            '/'. $file->get_contextid(). '/'. $file->get_component(). '/'.
+            $file->get_filearea(). $file->get_filepath(). $file->get_filename(),
+            !$isimage
+        );
+        if ($isimage) {
+            break;
+        }
+    }
+    if (!empty($courseimage)) {
+        return $courseimage;
+    } else {
+        return $OUTPUT->get_generated_image_for_id($corecourselistelement->id);
+    }
+}
+function get_extra_header_context(&$export, $course, $percentage, $imgurl) {
+    global $DB, $CFG, $OUTPUT, $PAGE;
+    $coursedetails = get_course($course->id);
+    if (!is_null($percentage)) {
+        $percentage = floor($percentage);
+        $export->generalsection['percentage'] = $percentage;
+    } else {
+        $export->generalsection['percentage'] = 0;
+    }
+    $categorydetails = $DB->get_record('course_categories', array('id' => $coursedetails->category));
+    $rnrshortdesign = '';
+    if (format_remuiformat_check_plugin_available("block_edwiserratingreview")) {
+        $rnr = new \block_edwiserratingreview\ReviewManager();
+        $rnrshortdesign = $rnr->get_short_design_enrolmentpage($course->id);
+    }
+    $coursesettings = course_get_format($course)->get_settings();
+    $export->generalsection['teachers'] = get_enrolled_teachers_context_formate($course, true);
+    $export->generalsection['coursefullname'] = format_text($coursedetails->fullname);
+    $export->generalsection['coursecategoryname'] = format_text($categorydetails->name);
+    $export->generalsection['rnrdesign'] = $rnrshortdesign;
+    if (gettype($imgurl) != "object") {
+        $imgurl = formate_get_course_image($course);
+    }
+    $export->generalsection['headercourseimage'] = $imgurl;
+    $export->generalsection['remuiheaderimagebgposition'] = $coursesettings['edw_format_hd_bgpos'];
+    $export->generalsection['remuiheaderimagebgsize'] = $coursesettings['edw_format_hd_bgsize'];
+    $export->generalsection['courseheaderdesign'] = true;
+    $export->turneditingonswitch = $OUTPUT->page_heading_button();
+    if ($CFG->theme == 'remui') {
+        $export->generalsection['courseheaderdesign'] = get_config('theme_remui', 'courseheaderdesign') == 0 ? false : true;
+        $export->turneditingonswitch = "";
+    }
+    $headeroverlayopacity = $coursesettings['headeroverlayopacity'];
+    if(is_numeric($headeroverlayopacity) && ($headeroverlayopacity <= 100)){
+        $headeroverlayopacity = $headeroverlayopacity / 100;
+        $export->generalsection['overlayopacity'] = $headeroverlayopacity;
+    }else{
+        $export->generalsection['overlayopacity'] = 1;
+    }
+    $export->generalsection['coursecompletionstatus'] =  $course->enablecompletion;
+    return $export->generalsection;
 }
